@@ -30,7 +30,7 @@ const WithPopover = ({ handle, content }) => {
           horizontal: 'center',
         }}
       >
-        {content}
+        {typeof content === 'function' ? content({ close: () => setAnchorEl() }) : content}
       </Popover>
     </>
   );
@@ -38,7 +38,10 @@ const WithPopover = ({ handle, content }) => {
 
 WithPopover.propTypes = {
   handle: PropTypes.node.isRequired,
-  content: PropTypes.node.isRequired,
+  content: PropTypes.oneOfType([
+    PropTypes.node,
+    PropTypes.func,
+  ]).isRequired,
 };
 
 export default WithPopover;

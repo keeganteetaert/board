@@ -20,6 +20,7 @@ const WithDialog = ({ handle, content, ...rest }) => {
         maxWidth="xs"
         open={open}
         onClose={() => setOpen(false)}
+        {...rest}
       >
         {content}
       </Dialog>

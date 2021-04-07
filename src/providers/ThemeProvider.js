@@ -12,12 +12,20 @@ const Provider = ({ children }) => {
       //   paper: 'rgb(30,30,30)',
       // },
     },
+    shadows: [
+      '0 0 10px rgba(0,0,0,0.1)',
+    ],
     overrides: {
       MuiCssBaseline: {
         '@global': {
           body: {
             overflowX: 'hidden',
           },
+        },
+      },
+      MuiSlider: {
+        markLabel: {
+          fontSize: '10px',
         },
       },
     },
