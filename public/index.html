@@ -17,10 +17,10 @@
     <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover, user-scalable=no">
 
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#FFFFFF" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="icon" type='image/png' href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" type='image/svg' href="%PUBLIC_URL%/logo.svg" />
 
     <title>Board</title>
   </head>
@@ -28,5 +28,15 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id='root'></div>
     <script src="cordova.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('%PUBLIC_URL%/sw.js')
+          .then((registration) => {
+            window.registration = registration;
+          })
+          .catch((error) => console.log('ServiceWorker registration failed: ', error));
+      }
+    </script>
   </body>
 </html>

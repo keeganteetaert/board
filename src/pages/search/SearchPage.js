@@ -1,105 +1,34 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Container, Grid, InputAdornment, Typography, Box, IconButton,
   Slider, useTheme, Divider, InputBase, Fade, MenuItem, Tooltip, CardActionArea, ListItemIcon, Collapse,
 } from '@material-ui/core';
 import * as icons from '@material-ui/icons';
-import { Autocomplete } from '@material-ui/lab';
-import { motion } from 'framer-motion';
-import { useLocalStorage } from '../../hooks';
-import { categories, MAX_DURATION, MIN_DURATION } from '../../constants';
+import { useData } from '../../hooks';
+import { MAX_DURATION, MIN_DURATION, sortKeys } from '../../constants';
 import { formatDuration } from '../../helpers';
 import AddButton from './AddButton';
-import GameList from './GameList';
-import { ValueLabel, WithPopover } from '../../components';
+import {
+  AnimatedList, TagInput, ValueLabel, WithPopover,
+} from '../../components';
 import GameDrawer from './GameDrawer';
-
-const sortMethodKeys = {
-  TITLE_ASC: 'TITLE_ASC',
-  TITLE_DESC: 'TITLE_DESC',
-  DURATION_ASC: 'DURATION_ASC',
-  DURATION_DESC: 'DURATION_DESC',
-};
-
-const sortMethods = {
-  [sortMethodKeys.TITLE_ASC]: (list) => list?.sort((a, b) => (a.title < b.title ? -1 : 1)),
-  [sortMethodKeys.TITLE_DESC]: (list) => list?.sort((a, b) => (a.title < b.title ? 1 : -1)),
-  [sortMethodKeys.DURATION_ASC]: (list) => list?.sort((a, b) => (a.duration?.[1] < b.duration?.[1] ? -1 : 1)),
-  [sortMethodKeys.DURATION_DESC]: (list) => list?.sort((a, b) => (a.duration?.[1] < b.duration?.[1] ? 1 : -1)),
-};
+import TagDrawer from './TagDrawer';
+import RandomGamesDialog from './RandomGamesDialog';
+import GameThumb from './GameThumb';
 
 const App = () => {
   const theme = useTheme();
-  const [games, setGames] = useLocalStorage('games', [
-    { id: 1, title: 'Settlers of Catan', tags: ['ABSTRACT', 'COOPERATIVE'] },
-    { id: 2, title: 'RISK', tags: ['COOPERATIVE'] },
-  ]);
-  const [query = '', setQuery] = useState();
-  const [sortMethod = sortMethodKeys.TITLE_ASC, setSortMethod] = useState();
-  const [players = 0, setPlayers] = useState();
-  const [duration = [MIN_DURATION, MAX_DURATION], setDuration] = useState();
-  const [tags = [], setTags] = useState();
-  const [activeGameId, setActiveGameId] = useState();
+  const {
+    games, createGame, setRandomGames, filteredGames, clearFilter, isFiltering, filter, patchFilter,
+  } = useData();
+
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [randomGames = [], setRandomGames] = useState();
-
-  const filteredGames = useMemo(() => {
-    let memo = sortMethods[sortMethod]([...games]);
-    if (query) {
-      memo = memo.filter((game) => game.title?.toLowerCase()?.indexOf(query?.toLowerCase()) !== -1);
-    }
-    if (players) {
-      memo = memo.filter((game) => (
-        players >= game.minPlayers && players <= game.maxPlayers
-      ));
-    }
-
-    if (duration[0] > 0) {
-      memo = memo.filter((game) => duration[0] <= game.duration?.[0]);
-    }
-
-    if (duration[1] !== MAX_DURATION) {
-      memo = memo.filter((game) => duration[1] >= game.duration?.[1]);
-    }
-    if (tags?.length) {
-      memo = memo.filter((game) => tags.some((tag) => game.tags?.includes(tag)));
-    }
-    return memo;
-  }, [games, query, duration, tags, sortMethod]);
-
-  function addGame() {
-    setGames((lastGames) => {
-      const id = Date.now();
-      const nextGames = [...lastGames, { id }];
-      setActiveGameId(id);
-      return nextGames;
-    });
-  }
-
-  function toggleRandom() {
-    if (randomGames.length) {
-      setRandomGames();
-    } else {
-      setRandomGames(filteredGames.map((g) => g.id).shuffle().splice(0, 3));
-    }
-  }
-
-  function clearFilter() {
-    setQuery();
-    setTags();
-    setDuration();
-    setPlayers();
-  }
-
-  const isFiltering = query || players || duration[0] !== MIN_DURATION || duration[1] !== MAX_DURATION || tags.length;
-
-  const displayedGames = randomGames.length ? (
-    randomGames.map((id) => games.find((g) => g.id === id))
-  ) : filteredGames;
 
   return (
     <>
-      <AddButton onClick={() => addGame()} />
+      <AddButton onClick={() => createGame()} />
+      <TagDrawer />
+      <RandomGamesDialog />
       <div
         style={{
           position: 'sticky',
@@ -110,23 +39,23 @@ const App = () => {
         }}
       >
         <Container maxWidth="sm">
-          <Collapse in={filtersOpen}>
-            <Grid container spacing={1} component={Box} py={2}>
+          <Collapse in={!!filtersOpen}>
+            <Grid container spacing={1} component={Box} pt={2}>
               <Grid item xs={12}>
                 <InputBase
                   fullWidth
-                  value={query}
+                  value={filter.query || ''}
                   placeholder="Search..."
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => patchFilter({ query: e.target.value })}
                   startAdornment={(
                     <InputAdornment position="start" disablePointerEvents>
                       <icons.SearchRounded />
                     </InputAdornment>
                 )}
                   endAdornment={(
-                    <Fade in={!!query}>
+                    <Fade in={!!filter.query}>
                       <InputAdornment position="end">
-                        <IconButton edge="end" onClick={() => setQuery('')}>
+                        <IconButton edge="end" onClick={() => patchFilter({ query: undefined })}>
                           <icons.CloseRounded color="primary" />
                         </IconButton>
                       </InputAdornment>
@@ -134,71 +63,55 @@ const App = () => {
                 )}
                 />
               </Grid>
-              <Grid container item xs={12} alignItems="center">
+              <Grid container item xs={12} alignItems="center" spacing={1}>
                 <Grid item>
                   <icons.PersonRounded color="primary" />
                 </Grid>
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <Grid item xs>
-                    <CardActionArea onClick={() => {
-                      if (players === index + 1) setPlayers();
-                      else setPlayers(index + 1);
-                    }}
-                    >
-                      <Box
-                        py={1}
-                        textAlign="center"
-                        style={{
-                          transition: '0.3s',
-                          fontWeight: players === index + 1 ? 600 : undefined,
-                          borderBottom: 'solid 2px transparent',
-                          borderBottomColor: players === index + 1 ? 'black' : 'transparent',
-                        }}
-                      >
-                        {index + 1}
-                        {index + 1 === 8 ? '+' : ''}
-                      </Box>
-                    </CardActionArea>
-                  </Grid>
-                ))}
+                <Grid item xs container>
+                  {React.Children.toArray(
+                    Array.from({ length: 8 }, (_, index) => index).map((index) => (
+                      <Grid item xs>
+                        <CardActionArea
+                          onClick={() => {
+                            if (filter.players === index + 1) patchFilter({ players: undefined });
+                            else patchFilter({ players: index + 1 });
+                          }}
+                          style={{
+                            borderRadius: theme.shape.borderRadius,
+                            fontWeight: filter.players === index + 1 ? 600 : undefined,
+                            background: filter.players === index + 1 ? 'black' : undefined,
+                            color: filter.players === index + 1 ? 'white' : undefined,
+                          }}
+                        >
+                          <Box
+                            py={1}
+                            textAlign="center"
+                          >
+                            {index + 1}
+                            {index + 1 === 8 ? '+' : ''}
+                          </Box>
+                        </CardActionArea>
+                      </Grid>
+                    )),
+                  )}
+                </Grid>
               </Grid>
               <Grid item xs={12}>
-                <Autocomplete
-                  multiple
-                  options={Object.keys(categories)}
-                  getOptionLabel={(key) => categories[key]}
-                  value={tags}
-                  onChange={(e, v) => setTags(v)}
-                  renderInput={(params) => (
-                    <InputBase
-                      {...params}
-                      {...params.InputProps}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      style={{ minHeight: '51px' }}
-                      placeholder={!tags.length ? 'Categories...' : undefined}
-                      startAdornment={(
-                        <>
-                          <InputAdornment position="start">
-                            <icons.LabelRounded />
-                          </InputAdornment>
-                          {params.InputProps.startAdornment}
-                        </>
-                    )}
-                      endAdornment={undefined}
-                    />
-                  )}
+                <TagInput
+                  value={filter.tags}
+                  onChange={(e, v) => patchFilter({ tags: v })}
                 />
               </Grid>
               <Grid item xs={12} container spacing={1}>
                 <Grid item>
-                  <icons.ScheduleRounded />
+                  <Box pt={1}>
+                    <icons.ScheduleRounded />
+                  </Box>
                 </Grid>
                 <Grid item xs>
                   <Slider
-                    value={duration}
-                    onChange={(e, v) => setDuration(v)}
+                    value={filter.duration}
+                    onChange={(e, v) => patchFilter({ duration: v })}
                     marks={Array.from({ length: Math.floor(MAX_DURATION / 15) + 1 }, (_, index) => {
                       const value = (index) * 15;
                       if (value % 60 !== 0) {
@@ -217,12 +130,12 @@ const App = () => {
             </Grid>
           </Collapse>
           <div>
-            <Grid container style={{ background: 'white' }} alignItems="center" component={Box} py={1}>
+            <Grid container style={{ background: 'white', transition: '0.3s' }} alignItems="center" component={Box} pb={1} pt={filtersOpen ? 0 : 1}>
               <Grid item xs>
-                <Typography variant="caption" color="textSecondary">{`${displayedGames.length} results`}</Typography>
+                <Typography variant="caption" color="textSecondary">{`${filteredGames.length} results`}</Typography>
               </Grid>
               <Grid item>
-                <Fade in={isFiltering && !randomGames.length}>
+                <Fade in={!!isFiltering}>
                   <Tooltip title="Clear filters" arrow>
                     <IconButton
                       onClick={() => clearFilter()}
@@ -236,20 +149,18 @@ const App = () => {
               <Grid item>
                 <WithPopover
                   handle={(
-                    <Fade in={!randomGames.length}>
-                      <Tooltip title="Sort results" arrow>
-                        <IconButton color="primary">
-                          <icons.SortRounded />
-                        </IconButton>
-                      </Tooltip>
-                    </Fade>
-                    )}
+                    <Tooltip title="Sort results" arrow>
+                      <IconButton color="primary">
+                        <icons.SortRounded />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   content={({ close }) => (
                     <>
                       <MenuItem
-                        selected={sortMethod === sortMethodKeys.TITLE_ASC}
+                        selected={filter.sort === sortKeys.TITLE_ASC}
                         onClick={() => {
-                          setSortMethod(sortMethodKeys.TITLE_ASC);
+                          patchFilter({ sort: sortKeys.TITLE_ASC });
                           close();
                         }}
                       >
@@ -257,9 +168,9 @@ const App = () => {
                         title
                       </MenuItem>
                       <MenuItem
-                        selected={sortMethod === sortMethodKeys.TITLE_DESC}
+                        selected={filter.sort === sortKeys.TITLE_DESC}
                         onClick={() => {
-                          setSortMethod(sortMethodKeys.TITLE_DESC);
+                          patchFilter({ sort: sortKeys.TITLE_DESC });
                           close();
                         }}
                       >
@@ -267,9 +178,9 @@ const App = () => {
                         title
                       </MenuItem>
                       <MenuItem
-                        selected={sortMethod === sortMethodKeys.DURATION_ASC}
+                        selected={filter.sort === sortKeys.DURATION_ASC}
                         onClick={() => {
-                          setSortMethod(sortMethodKeys.DURATION_ASC);
+                          patchFilter({ sort: sortKeys.DURATION_ASC });
                           close();
                         }}
                       >
@@ -277,9 +188,9 @@ const App = () => {
                         duration
                       </MenuItem>
                       <MenuItem
-                        selected={sortMethod === sortMethodKeys.DURATION_DESC}
+                        selected={filter.sort === sortKeys.DURATION_DESC}
                         onClick={() => {
-                          setSortMethod(sortMethodKeys.DURATION_DESC);
+                          patchFilter({ sort: sortKeys.DURATION_DESC });
                           close();
                         }}
                       >
@@ -292,26 +203,13 @@ const App = () => {
               </Grid>
               <Grid item>
                 <Tooltip title="Select random game from results" arrow>
-                  <motion.div
-                    whileTap={{
-                      rotate: 45,
-                      transition: { duration: 0.1 },
-                    }}
+                  <IconButton
+                    disabled={filteredGames.length <= 1}
+                    color="primary"
+                    onClick={() => setRandomGames(filteredGames)}
                   >
-                    <IconButton
-                      style={{
-                        transition: '0.3s',
-                        background: randomGames.length ? 'black' : undefined,
-                        color: randomGames.length ? 'white' : undefined,
-                      }}
-                      disabled={filteredGames.length <= 1}
-                      color="primary"
-                      onClick={() => toggleRandom()}
-                    >
-
-                      <icons.CasinoRounded />
-                    </IconButton>
-                  </motion.div>
+                    <icons.CasinoRounded />
+                  </IconButton>
                 </Tooltip>
               </Grid>
               <Grid item>
@@ -337,34 +235,20 @@ const App = () => {
             </Grid>
           </div>
         </Container>
-        <Divider light />
       </div>
       <Container maxWidth="sm" disableGutters>
-        <GameList
-          activeTags={tags}
-          games={displayedGames}
-          setActiveGameId={setActiveGameId}
-        />
+        <AnimatedList getKey={(index) => filteredGames[index].id}>
+          {filteredGames.map((game) => (
+            <GameThumb
+              key={game.id}
+              game={game}
+            />
+          ))}
+        </AnimatedList>
         {games.map((game) => (
           <GameDrawer
+            key={game.id}
             game={game}
-            activeTags={tags}
-            activeGameId={activeGameId}
-            setActiveGameId={setActiveGameId}
-            onChange={(nextGame) => {
-              setGames((lastGames) => {
-                const nextGames = [...lastGames];
-                const gameIndex = nextGames.findIndex((g) => g.id === game.id);
-                nextGames[gameIndex] = nextGame;
-                return nextGames;
-              });
-            }}
-            onDelete={() => {
-              setGames((lastGames) => {
-                const nextGames = [...lastGames].filter((g) => g.id !== game.id);
-                return nextGames;
-              });
-            }}
           />
         ))}
         <Box pt={11} />

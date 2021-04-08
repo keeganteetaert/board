@@ -8,22 +8,24 @@ import {
 } from '@material-ui/core';
 import PropTypes from 'prop-types';
 import * as icons from '@material-ui/icons';
-import { Autocomplete } from '@material-ui/lab';
 import { formatDuration } from '../../helpers';
-import { categories, MAX_DURATION, MIN_DURATION } from '../../constants';
-import { ValueLabel } from '../../components';
+import { MAX_DURATION, MIN_DURATION } from '../../constants';
+import { TagInput, ValueLabel } from '../../components';
+import { useData } from '../../hooks';
 
-const GameDrawer = ({
-  game, onChange, onDelete, activeTags, activeGameId, setActiveGameId,
-}) => {
+const GameDrawer = ({ game }) => {
+  const {
+    deleteGame, updateGame, activeGameId, setActiveGameId,
+  } = useData();
+
   function handleChange(changes = {}) {
-    onChange({ ...game || {}, ...changes });
+    updateGame({ ...game || {}, ...changes });
   }
 
   function handleClose() {
     setActiveGameId();
     if (!game.title) {
-      onDelete();
+      deleteGame(game);
     }
   }
 
@@ -32,10 +34,11 @@ const GameDrawer = ({
       disableDiscovery
       anchor="bottom"
       open={activeGameId === game.id}
+      onOpen={() => {}}
       onClose={handleClose}
     >
       <form onSubmit={(e) => { e.preventDefault(); }}>
-        <Container fullWidth maxWidth="md" disableGutters>
+        <Container fullWidth maxWidth="sm" disableGutters>
           <Grid container alignItems="center" component={Box} px={2} py={1}>
             <Grid item xs>
               <InputBase
@@ -50,7 +53,7 @@ const GameDrawer = ({
             <Grid item>
               <IconButton
                 edge="end"
-                onClick={() => onDelete()}
+                onClick={() => deleteGame(game)}
               >
                 <icons.DeleteRounded />
               </IconButton>
@@ -104,8 +107,8 @@ const GameDrawer = ({
                     handleChange({ duration: !v[0] && !v[1] ? undefined : v });
                   }}
                   step={15}
-                  marks={Array.from({ length: Math.floor(MAX_DURATION / 15) }, (_, i) => {
-                    const value = (i + 1) * 15;
+                  marks={Array.from({ length: Math.floor(MAX_DURATION / 15) + 1 }, (_, i) => {
+                    const value = i * 15;
                     if (value % 60 !== 0) {
                       return { value, label: '' };
                     }
@@ -117,36 +120,10 @@ const GameDrawer = ({
                   max={MAX_DURATION}
                 />
               </Grid>
-
               <Grid item xs={12}>
-                <Autocomplete
-                  multiple
-                  options={Object.keys(categories)}
-                  getOptionLabel={(key) => categories[key]}
-                  value={game.tags || []}
+                <TagInput
+                  value={game.tags}
                   onChange={(e, v) => handleChange({ tags: v })}
-                  renderInput={(params) => (
-                    <InputBase
-                      {...params}
-                      {...params.InputProps}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      style={{
-                        minHeight: '51px',
-                      }}
-                      placeholder={!game.tags?.length ? 'Categories...' : undefined}
-                      startAdornment={(
-                        <>
-                          <InputAdornment position="start">
-                            <icons.LabelRounded />
-                          </InputAdornment>
-                          {params.InputProps.startAdornment}
-                        </>
-                        )}
-                      endAdornment={undefined}
-                    />
-                  )}
                 />
               </Grid>
             </Grid>
@@ -159,16 +136,6 @@ const GameDrawer = ({
 
 GameDrawer.propTypes = {
   game: PropTypes.shape().isRequired,
-  onChange: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  activeTags: PropTypes.arrayOf(PropTypes.string),
-  activeGameId: PropTypes.number,
-  setActiveGameId: PropTypes.func.isRequired,
-};
-
-GameDrawer.defaultProps = {
-  activeGameId: null,
-  activeTags: [],
 };
 
 export default GameDrawer;

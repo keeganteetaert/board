@@ -3,18 +3,19 @@ import { CssBaseline, ThemeProvider, createMuiTheme } from '@material-ui/core';
 import PropTypes from 'prop-types';
 
 const Provider = ({ children }) => {
+  const ot = createMuiTheme();
+
   const theme = createMuiTheme({
     palette: {
-      // type: 'dark',
       primary: { main: 'rgb(40,40,40)' },
-      // background: {
-      //   default: 'rgb(10,10,10)',
-      //   paper: 'rgb(30,30,30)',
-      // },
     },
     shadows: [
       '0 0 10px rgba(0,0,0,0.1)',
+      ...ot.shadows.slice(1), // TODO
     ],
+    shape: {
+      borderRadius: 12,
+    },
     overrides: {
       MuiCssBaseline: {
         '@global': {
@@ -26,6 +27,21 @@ const Provider = ({ children }) => {
       MuiSlider: {
         markLabel: {
           fontSize: '10px',
+        },
+        root: {
+          width: 'calc(100% - 10px)',
+          marginLeft: '5px',
+        },
+      },
+      MuiChip: {
+        labelSmall: {
+          fontSize: '10px',
+        },
+      },
+      MuiDrawer: {
+        paperAnchorBottom: {
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
         },
       },
     },
