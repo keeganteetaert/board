@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Drawer } from '@material-ui/core';
+import { SwipeableDrawer } from '@material-ui/core';
 
 const WithDrawer = ({ handle, content, ...rest }) => {
   const [open, setOpen] = useState(false);
@@ -15,13 +15,14 @@ const WithDrawer = ({ handle, content, ...rest }) => {
           setOpen(true);
         },
       })}
-      <Drawer
+      <SwipeableDrawer
         open={open}
+        onOpen={() => {}}
         onClose={() => setOpen(false)}
         {...rest}
       >
         {content}
-      </Drawer>
+      </SwipeableDrawer>
     </>
   );
 };
