@@ -1,4 +1,4 @@
-const RUNTIME = 'v1.02';
+const RUNTIME = 'v1.03';
 // eslint-disable-next-line no-restricted-globals
 const worker = self;
 

@@ -4,8 +4,8 @@ import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
 import { List } from '@material-ui/core';
 
 const AnimatedList = ({ children, getKey }) => (
-  <List style={{ overflowX: 'hidden' }}>
-    <AnimateSharedLayout>
+  <AnimateSharedLayout>
+    <List style={{ overflow: 'hidden' }}>
       <AnimatePresence>
         {children.map((child, index) => (
           <motion.div
@@ -33,8 +33,8 @@ const AnimatedList = ({ children, getKey }) => (
           </motion.div>
         ))}
       </AnimatePresence>
-    </AnimateSharedLayout>
-  </List>
+    </List>
+  </AnimateSharedLayout>
 );
 AnimatedList.propTypes = {
   children: PropTypes.arrayOf(PropTypes.node),
