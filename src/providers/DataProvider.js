@@ -15,7 +15,7 @@ const sort = {
 const defaultFilter = {
   query: '',
   tags: [],
-  duration: [MIN_DURATION, MAX_DURATION],
+  duration: MAX_DURATION,
   players: 0,
   sort: sortKeys.TITLE_ASC,
 };
@@ -54,11 +54,14 @@ const DataProvider = ({ children }) => {
         filter.players >= game.minPlayers && filter.players <= game.maxPlayers
       ));
     }
-    if (filter.duration[0] > 0) {
-      memo = memo.filter((game) => filter.duration[0] <= game.duration?.[0]);
-    }
-    if (filter.duration[1] !== MAX_DURATION) {
-      memo = memo.filter((game) => filter.duration[1] >= game.duration?.[1]);
+    // if (filter.duration[0] > 0) {
+    //   memo = memo.filter((game) => filter.duration[0] <= game.duration?.[0]);
+    // }
+    // if (filter.duration[1] !== MAX_DURATION) {
+    //   memo = memo.filter((game) => filter.duration[1] >= game.duration?.[1]);
+    // }
+    if (filter.duration !== MAX_DURATION) {
+      memo = memo.filter((game) => filter.duration >= game.duration?.[0] && filter.duration <= game.duration?.[1]);
     }
     if (filter.tags?.length) {
       memo = memo.filter((game) => filter.tags.some((tag) => game.tags?.includes(tag)));
